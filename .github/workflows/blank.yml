@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek AI Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        #chat-container { width: 60%; margin: auto; text-align: left; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
+        .message { padding: 10px; border-bottom: 1px solid #ddd; }
+        .user { color: blue; }
+        .bot { color: green; }
+        #input-container { margin-top: 10px; display: none; }
+        #toggle-mode { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>DeepSeek AI Chat</h2>
+    <button id="toggle-mode">开启深度思考模式</button>
+    
+    <div id="chat-container"></div>
+
+    <div id="input-container">
+        <textarea id="user-input" rows="3" style="width: 80%;"></textarea><br>
+        <button id="send-btn">发送</button>
+    </div>
+
+    <script>
+        const apiKey = "sk-8a28c7412f3e4f67b7a28b1cad45774c";
+        const apiUrl = "https://api.deepseek.com/chat/completions";
+        let chatHistory = [{"role": "system", "content": "You are a helpful assistant."}];
+        let deepThinking = false;
+
+        document.getElementById("toggle-mode").addEventListener("click", function() {
+            deepThinking = !deepThinking;
+            this.innerText = deepThinking ? "关闭深度思考模式" : "开启深度思考模式";
+        });
+
+        document.getElementById("send-btn").addEventListener("click", async function() {
+            let userText = document.getElementById("user-input").value.trim();
+            if (!userText) return;
+            
+            document.getElementById("input-container").style.display = "none";  // 隐藏输入框
+
+            // 显示用户输入
+            addMessage("你: " + userText, "user");
+            chatHistory.push({"role": "user", "content": userText});
+
+            // 选择模型
+            let model = deepThinking ? "deepseek-reasoner" : "deepseek-chat";
+
+            // 调用 DeepSeek API
+            try {
+                let response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: chatHistory,
+                        max_tokens: 300
+                    })
+                });
+
+                let result = await response.json();
+                let reply = result.choices?.[0]?.message?.content || "无返回内容";
+
+                // 记录 AI 回复
+                chatHistory.push({"role": "assistant", "content": reply});
+                addMessage("DeepSeek: " + reply, "bot");
+
+            } catch (error) {
+                addMessage("错误：" + error.message, "bot");
+            }
+
+            // 重新显示输入框
+            document.getElementById("user-input").value = "";
+            document.getElementById("input-container").style.display = "block";
+        });
+
+        function addMessage(content, type) {
+            let div = document.createElement("div");
+            div.className = "message " + type;
+            div.innerText = content;
+            document.getElementById("chat-container").appendChild(div);
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        // 显示输入框
+        document.getElementById("input-container").style.display = "block";
+    </script>
+
+</body>
+</html>
